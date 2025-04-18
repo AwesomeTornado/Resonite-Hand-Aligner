@@ -20,11 +20,12 @@ public class HandAligner : ResoniteMod {
 
 	public override void OnEngineInit() {
 		Harmony harmony = new Harmony("com.__Choco__.HandAligner");
+		Msg("HandAligner loaded.");
 		harmony.PatchAll();
 	}
 
 	//Example of how a HarmonyPatch can be formatted, Note that the following isn't a real patch and will not compile.
-	[HarmonyPatch(typeof(AvatarCreator), "TryGetBipedFromHead", MethodType.Normal)]
+	[HarmonyPatch(typeof(AvatarCreator), "AlignHands", MethodType.Normal)]
 	
 	class AlignAvatarHands {
 		static bool Prefix(AvatarCreator __instance) {
@@ -36,10 +37,12 @@ public class HandAligner : ResoniteMod {
 			BipedRig biped = (BipedRig)avatarCreator_2.Method("TryGetBipedFromHead", new object[] { list }).GetValue();
 
 			if (biped == null || !biped.IsValid) {
+				Error("Invalid BipedRig, either null or invalid");
 				return true;
 			}
 			VRIK ik = biped.Slot.GetComponentInChildrenOrParents<VRIK>(null, false);
 			if (ik == null) {
+				Error("No VRIK found in BipedRig");
 				return true;
 			}
 			Slot leftRef = (avatarCreator_2.Field("_leftReference").GetValue() as SyncRef<Slot>).Target; //__instance._leftReference.Target;
@@ -50,7 +53,7 @@ public class HandAligner : ResoniteMod {
 			IKSolverVR.Arm rightArmIk = ik.Solver.rightArm;
 			leftRef.GlobalPosition = leftHand.GlobalPosition;
 			target.GlobalPosition = rightHand.GlobalPosition;
-			
+			Msg("Function ran successfully!");
 			return false;
 		}
 
