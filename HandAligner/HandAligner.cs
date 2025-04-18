@@ -2,17 +2,17 @@ using FrooxEngine;
 using HarmonyLib;
 using ResoniteModLoader;
 
-namespace ExampleMod;
+namespace HandAligner;
 //More info on creating mods can be found https://github.com/resonite-modding-group/ResoniteModLoader/wiki/Creating-Mods
-public class ExampleMod : ResoniteMod {
+public class HandAligner : ResoniteMod {
 	internal const string VERSION_CONSTANT = "1.0.0"; //Changing the version here updates it in all locations needed
-	public override string Name => "ExampleMod";
+	public override string Name => "HandAligner";
 	public override string Author => "ExampleAuthor";
 	public override string Version => VERSION_CONSTANT;
-	public override string Link => "https://github.com/resonite-modding-group/ExampleMod/";
+	public override string Link => "https://github.com/resonite-modding-group/HandAligner/";
 
 	public override void OnEngineInit() {
-		Harmony harmony = new Harmony("com.example.ExampleMod");
+		Harmony harmony = new Harmony("com.example.HandAligner");
 		harmony.PatchAll();
 	}
 
@@ -20,7 +20,7 @@ public class ExampleMod : ResoniteMod {
 	[HarmonyPatch(typeof(ClassNameHere), "MethodNameHere")]
 	class ClassNameHere_MethodNameHere_Patch {
 		static void Postfix(ClassNameHere __instance) {
-			Msg("Postfix from ExampleMod");
+			Msg("Postfix from HandAligner");
 		}
 	}
 }
