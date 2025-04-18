@@ -6,6 +6,30 @@ using FrooxEngine;
 using FrooxEngine.FinalIK;
 using Elements.Core;
 using HarmonyLib;
+using FrooxEngine.CommonAvatar;
+using ResoniteModLoader;
+
+using System.Reflection;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+using Elements.Core;
+using FrooxEngine;
+using FrooxEngine.UIX;
+using HarmonyLib;
 using ResoniteModLoader;
 
 namespace HandAligner;
@@ -13,21 +37,41 @@ namespace HandAligner;
 public class HandAligner : ResoniteMod {
 	internal const string VERSION_CONSTANT = "1.0.0"; //Changing the version here updates it in all locations needed
 	public override string Name => "HandAligner";
-	public override string Author => "ExampleAuthor";
+	public override string Author => "__Choco__";
 	public override string Version => VERSION_CONSTANT;
 	public override string Link => "https://github.com/resonite-modding-group/HandAligner/";
 
 	public override void OnEngineInit() {
-		Harmony harmony = new Harmony("com.example.HandAligner");
+		Harmony harmony = new Harmony("com.__Choco__.HandAligner");
 		harmony.PatchAll();
 	}
 
 	//Example of how a HarmonyPatch can be formatted, Note that the following isn't a real patch and will not compile.
-	[HarmonyPatch(typeof(AvatarCreator), "AlignHands")]
+	[HarmonyPatch(typeof(AvatarCreator), "AlignHands", MethodType.Normal)]
+	
 	class AlignAvatarHands {
-		static void Postfix(AvatarCreator __instance) {
+		static bool Prefix(AvatarCreator __instance) {
 			Msg("Prefix from HandAligner");
-			
+
+			List<Slot> list;
+			BipedRig biped = __instance.TryGetBipedFromHead(out list);
+			if (biped == null || !biped.IsValid) {
+				return true;
+			}
+			VRIK ik = biped.Slot.GetComponentInChild__instancerenOrParents<VRIK>(null, false);
+			if (ik == null) {
+				return true;
+			}
+			Slot leftRef = __instance._leftReference.Target;
+			Slot target = __instance._rightReference.Target;
+			Slot leftHand = biped[BodyNode.LeftHand];
+			Slot rightHand = biped[BodyNode.RightHand];
+			IKSolverVR.Arm leftArmIk = ik.Solver.leftArm;
+			IKSolverVR.Arm rightArmIk = ik.Solver.rightArm;
+			leftRef.GlobalPosition = leftHand.GlobalPosition;
+			target.GlobalPosition = rightHand.GlobalPosition;
+
+			return false;
 		}
 
 		static void SetAviCreatorHandRotation(BipedRig bipedRig, AvatarCreator avatarCreator, float3 localScale, bool rightSide) {
@@ -154,5 +198,141 @@ public class HandAligner : ResoniteMod {
 			}
 			avatarCreatorHand.LocalRotation = bestRotation;
 		}
+
+		static Slot[] GetFingerTips(BipedRig bipedRig, bool rightSide, out float3[] tipRefs, bool includeThumb) {
+			BodyNode[][] fingerOrders = rightSide ? rightFingerOrders : leftFingerOrders;
+			float3[] handTipRefs = rightSide ? relativeFingerPositionsRight : relativeFingerPositionsLeft;
+			List<Slot> fingerTips = new List<Slot>();
+			List<float3> tipRefsList = new List<float3>();
+			for (int i = 0; i < fingerOrders.Length; i++) {
+				//ImportFromUnityLib.DebugLog("Finger order:" + fingerOrders[i]);
+				BodyNode[] fingerOrder = fingerOrders[i];
+				// todo: lookup positions for left hand
+				if (!includeThumb && fingerOrder[0].ToString().ToLower().Contains("thumb")) {
+					continue;
+				}
+				// get furthest part of finger available
+				Slot fingerTip = null;
+				foreach (BodyNode fingerPart in fingerOrder) {
+					//ImportFromUnityLib.DebugLog("Finger part:" + fingerPart);
+					Slot curTip = bipedRig.TryGetBone(fingerPart);
+					if (curTip != null) {
+						fingerTip = curTip;
+					}
+				}
+				if (fingerTip != null) {
+					//ImportFromUnityLib.DebugLog("Got tip for finger:" + fingerTip + " with i " + i);
+					tipRefsList.Add(handTipRefs[i]);
+					//ImportFromUnityLib.DebugLog("set tip for finger:" + fingerTip);
+					fingerTips.Add(fingerTip);
+				}
+			}
+			tipRefs = tipRefsList.ToArray();
+			return fingerTips.ToArray();
+		}
+
+		static float3[] relativeFingerPositionsRight = new float3[] {
+			new float3(-0.0944553f, -0.06033006f, 0.1202253f), // thumb
+            new float3(-0.03632067f, -0.0295704f, 0.2140587f), // index
+            new float3(-0.01105062f, -0.02654553f, 0.2155553f), // middle
+            new float3(0.01396004f, -0.02654572f, 0.2100046f), // ring
+            new float3(0.03692787f, -0.02956969f, 0.1954267f) // pinky
+        };
+
+		static float3[] relativeFingerPositionsLeft = new float3[]
+		{
+			new float3(0.09763367f, -0.06523453f, 0.1208142f), // thumb
+            new float3(0.03690476f, -0.02722489f, 0.209686f), // index
+            new float3(0.01103727f, -0.02597604f, 0.2162421f), // middle
+            new float3(-0.0133688f, -0.0280386f, 0.2088304f), // ring
+            new float3(-0.03593383f, -0.03025665f, 0.1963694f) // pinky
+        };
+
+		static BodyNode[][] leftFingerOrders = new BodyNode[][]
+		{
+			new BodyNode[]
+			{
+				BodyNode.LeftThumb_Metacarpal,
+				BodyNode.LeftThumb_Proximal,
+				BodyNode.LeftThumb_Distal,
+				BodyNode.LeftThumb_Tip,
+			},
+			new BodyNode[]
+			{
+				BodyNode.LeftIndexFinger_Metacarpal,
+				BodyNode.LeftIndexFinger_Proximal,
+				BodyNode.LeftIndexFinger_Intermediate,
+				BodyNode.LeftIndexFinger_Distal,
+				BodyNode.LeftIndexFinger_Tip,
+			},
+			new BodyNode[]
+			{
+				BodyNode.LeftMiddleFinger_Metacarpal,
+				BodyNode.LeftMiddleFinger_Proximal,
+				BodyNode.LeftMiddleFinger_Intermediate,
+				BodyNode.LeftMiddleFinger_Distal,
+				BodyNode.LeftMiddleFinger_Tip,
+			},
+			new BodyNode[]
+			{
+				BodyNode.LeftRingFinger_Metacarpal,
+				BodyNode.LeftRingFinger_Proximal,
+				BodyNode.LeftRingFinger_Intermediate,
+				BodyNode.LeftRingFinger_Distal,
+				BodyNode.LeftRingFinger_Tip,
+		   },
+			new BodyNode[]
+			{
+				BodyNode.LeftPinky_Metacarpal,
+				BodyNode.LeftPinky_Proximal,
+				BodyNode.LeftPinky_Intermediate,
+				BodyNode.LeftPinky_Distal,
+				BodyNode.LeftPinky_Tip,
+			},
+		};
+
+		static BodyNode[][] rightFingerOrders = new BodyNode[][]
+		{
+			new BodyNode[]
+			{
+				BodyNode.RightThumb_Metacarpal,
+				BodyNode.RightThumb_Proximal,
+				BodyNode.RightThumb_Distal,
+				BodyNode.RightThumb_Tip,
+			},
+			new BodyNode[]
+			{
+				BodyNode.RightIndexFinger_Metacarpal,
+				BodyNode.RightIndexFinger_Proximal,
+				BodyNode.RightIndexFinger_Intermediate,
+				BodyNode.RightIndexFinger_Distal,
+				BodyNode.RightIndexFinger_Tip,
+			},
+			new BodyNode[]
+			{
+				BodyNode.RightMiddleFinger_Metacarpal,
+				BodyNode.RightMiddleFinger_Proximal,
+				BodyNode.RightMiddleFinger_Intermediate,
+				BodyNode.RightMiddleFinger_Distal,
+				BodyNode.RightMiddleFinger_Tip,
+			},
+			new BodyNode[]
+			{
+				BodyNode.RightRingFinger_Metacarpal,
+				BodyNode.RightRingFinger_Proximal,
+				BodyNode.RightRingFinger_Intermediate,
+				BodyNode.RightRingFinger_Distal,
+				BodyNode.RightRingFinger_Tip,
+		   },
+			new BodyNode[]
+			{
+				BodyNode.RightPinky_Metacarpal,
+				BodyNode.RightPinky_Proximal,
+				BodyNode.RightPinky_Intermediate,
+				BodyNode.RightPinky_Distal,
+				BodyNode.RightPinky_Tip,
+			},
+		};
+
 	}
 }

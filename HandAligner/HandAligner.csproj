@@ -36,6 +36,9 @@
 		<Reference Include="Elements.Core">
 			<HintPath>$(ResonitePath)Resonite_Data\Managed\Elements.Core.dll</HintPath>
 		</Reference>
+		<Reference Include="Elements.Core">
+			<HintPath>$(ResonitePath)Resonite_Data\Managed\Elements.Core.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(CopyToMods)'=='true'">
