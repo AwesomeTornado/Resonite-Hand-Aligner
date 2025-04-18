@@ -36,12 +36,6 @@ public class HandAligner : ResoniteMod {
 		static BipedRig biped_cache;
 
 		static void AlignHands(AvatarCreator __instance) {
-
-			List<Slot> list = new List<Slot>();
-			Msg("Instantiated \"List\"");
-			var avatarCreator_2 = Traverse.Create(__instance);
-			Msg("Instantiated \"avatarCreator_2\"");
-
 			BipedRig biped = biped_cache;
 			Msg("Instantiated \"biped\"");
 			if (biped == null) {
@@ -52,18 +46,15 @@ public class HandAligner : ResoniteMod {
 				Error("Invalid BipedRig, invalid");
 				return;
 			}
-
 			Msg("var \"biped\" passed null and validity checks successfully.");
 
 			SetAviCreatorHandRotation(biped, __instance, float3.One, true);
 			SetAviCreatorHandRotation(biped, __instance, float3.One, false);
 
 			Msg("Function ran successfully!");
-			return;
 		}
 
 		static void trygetbipedfromhead(AvatarCreator __instance, ref BipedRig __result) {
-			Msg("FindBipedRig postfix");
 			if (__result is null) {
 				Error("Biped rig is null");
 				return;
@@ -72,7 +63,7 @@ public class HandAligner : ResoniteMod {
 				Error("Biped rig is invalid");
 				return;
 			}
-			Msg("Biped success, caching");
+			Msg("trygetbipedfromhead success, caching");
 			//this is... the wrong way to get the biped rig.
 			//Regardless, it works, so it stays.
 			biped_cache = __result;
