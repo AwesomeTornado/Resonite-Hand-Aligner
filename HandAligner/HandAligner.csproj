@@ -34,7 +34,7 @@
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="Elements.Core">
-			<HintPath>$(GamePath)Resonite_Data\Managed\Elements.Core.dll</HintPath>
+			<HintPath>$(ResonitePath)Resonite_Data\Managed\Elements.Core.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 
