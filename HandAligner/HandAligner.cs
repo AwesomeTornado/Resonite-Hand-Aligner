@@ -28,14 +28,13 @@ public class HandAligner : ResoniteMod {
 		harmony.PatchAll();
 	}
 
-	//Example of how a HarmonyPatch can be formatted, Note that the following isn't a real patch and will not compile.
-
-	[HarmonyPatch(typeof(AvatarCreator), "AlignHands", MethodType.Normal)]
 	class AlignmentPatchMethods {
 
 		static BipedRig biped_cache;
 
 		static void AlignHands(AvatarCreator __instance) {
+			Warn("Remember to turn off symmetery!!!! (this message always appears)");
+
 			BipedRig biped = biped_cache;
 			Msg("Instantiated \"biped\"");
 			if (biped == null) {
@@ -329,5 +328,4 @@ public class HandAligner : ResoniteMod {
 		};
 
 	}
-
 }
