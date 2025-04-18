@@ -8,6 +8,8 @@ using Elements.Core;
 using HarmonyLib;
 
 using ResoniteModLoader;
+using FrooxEngine.UIX;
+using System.Runtime.CompilerServices;
 
 namespace HandAligner;
 //More info on creating mods can be found https://github.com/resonite-modding-group/ResoniteModLoader/wiki/Creating-Mods
@@ -20,43 +22,61 @@ public class HandAligner : ResoniteMod {
 
 	public override void OnEngineInit() {
 		Harmony harmony = new Harmony("com.__Choco__.HandAligner");
+		harmony.Patch(AccessTools.Method(typeof(AvatarCreator), "AlignHands"), postfix: AccessTools.Method(typeof(AlignmentPatchMethods), "AlignHands"));
+		harmony.Patch(AccessTools.Method(typeof(AvatarCreator), "TryGetBipedFromHead"), postfix: AccessTools.Method(typeof(AlignmentPatchMethods), "trygetbipedfromhead"));
 		Msg("HandAligner loaded.");
 		harmony.PatchAll();
 	}
 
 	//Example of how a HarmonyPatch can be formatted, Note that the following isn't a real patch and will not compile.
-	[HarmonyPatch(typeof(AvatarCreator), "AlignHands", MethodType.Normal)]
-	
-	class AlignAvatarHands {
-		static bool Prefix(AvatarCreator __instance) {
-			Msg("Prefix from HandAligner");
-			//Traverse might help with this?
-			
-			List<Slot> list = new List<Slot>();
-			var avatarCreator_2 = Traverse.Create(__instance);
-			BipedRig biped = (BipedRig)avatarCreator_2.Method("TryGetBipedFromHead", new object[] { list }).GetValue();
 
-			if (biped == null || !biped.IsValid) {
-				Error("Invalid BipedRig, either null or invalid");
-				return true;
+	[HarmonyPatch(typeof(AvatarCreator), "AlignHands", MethodType.Normal)]
+	class AlignmentPatchMethods {
+
+		static BipedRig biped_cache;
+
+		static void AlignHands(AvatarCreator __instance) {
+
+			List<Slot> list = new List<Slot>();
+			Msg("Instantiated \"List\"");
+			var avatarCreator_2 = Traverse.Create(__instance);
+			Msg("Instantiated \"avatarCreator_2\"");
+
+			BipedRig biped = biped_cache;
+			Msg("Instantiated \"biped\"");
+			if (biped == null) {
+				Error("Invalid BipedRig, null");
+				return;
 			}
-			VRIK ik = biped.Slot.GetComponentInChildrenOrParents<VRIK>(null, false);
-			if (ik == null) {
-				Error("No VRIK found in BipedRig");
-				return true;
+			if (!biped.IsValid) {
+				Error("Invalid BipedRig, invalid");
+				return;
 			}
-			Slot leftRef = (avatarCreator_2.Field("_leftReference").GetValue() as SyncRef<Slot>).Target; //__instance._leftReference.Target;
-			Slot target = (avatarCreator_2.Field("_rightReference").GetValue() as SyncRef<Slot>).Target; //__instance._rightReference.Target;
-			Slot leftHand = biped[BodyNode.LeftHand];
-			Slot rightHand = biped[BodyNode.RightHand];
-			IKSolverVR.Arm leftArmIk = ik.Solver.leftArm;
-			IKSolverVR.Arm rightArmIk = ik.Solver.rightArm;
-			leftRef.GlobalPosition = leftHand.GlobalPosition;
-			target.GlobalPosition = rightHand.GlobalPosition;
+
+			Msg("var \"biped\" passed null and validity checks successfully.");
+
+			SetAviCreatorHandRotation(biped, __instance, float3.One, true);
+			SetAviCreatorHandRotation(biped, __instance, float3.One, false);
+
 			Msg("Function ran successfully!");
-			return false;
+			return;
 		}
 
+		static void trygetbipedfromhead(AvatarCreator __instance, ref BipedRig __result) {
+			Msg("FindBipedRig postfix");
+			if (__result is null) {
+				Error("Biped rig is null");
+				return;
+			}
+			if (!__result.IsValid) {
+				Error("Biped rig is invalid");
+				return;
+			}
+			Msg("Biped success, caching");
+			//this is... the wrong way to get the biped rig.
+			//Regardless, it works, so it stays.
+			biped_cache = __result;
+		}
 		static void SetAviCreatorHandRotation(BipedRig bipedRig, AvatarCreator avatarCreator, float3 localScale, bool rightSide) {
 			float3 globalFingerTipRef1;
 			float3 globalFingerTipRef2;
@@ -318,4 +338,5 @@ public class HandAligner : ResoniteMod {
 		};
 
 	}
+
 }
