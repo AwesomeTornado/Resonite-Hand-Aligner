@@ -39,7 +39,7 @@ public class HandAligner : ResoniteMod {
 	public override string Name => "HandAligner";
 	public override string Author => "__Choco__";
 	public override string Version => VERSION_CONSTANT;
-	public override string Link => "https://github.com/resonite-modding-group/HandAligner/";
+	public override string Link => "https://github.com/resonite-modding-group/HandAligner/";//FIX THIS
 
 	public override void OnEngineInit() {
 		Harmony harmony = new Harmony("com.__Choco__.HandAligner");
@@ -52,7 +52,8 @@ public class HandAligner : ResoniteMod {
 	class AlignAvatarHands {
 		static bool Prefix(AvatarCreator __instance) {
 			Msg("Prefix from HandAligner");
-
+			//Traverse might help with this?
+			/*
 			List<Slot> list;
 			BipedRig biped = __instance.TryGetBipedFromHead(out list);
 			if (biped == null || !biped.IsValid) {
@@ -70,7 +71,7 @@ public class HandAligner : ResoniteMod {
 			IKSolverVR.Arm rightArmIk = ik.Solver.rightArm;
 			leftRef.GlobalPosition = leftHand.GlobalPosition;
 			target.GlobalPosition = rightHand.GlobalPosition;
-
+			*/
 			return false;
 		}
 
