@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<RootNamespace>ExampleMod</RootNamespace>
-		<AssemblyName>ExampleMod</AssemblyName>
+		<RootNamespace>HandAligner</RootNamespace>
+		<AssemblyName>HandAligner</AssemblyName>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<TargetFramework>net472</TargetFramework>
 		<FileAlignment>512</FileAlignment>
@@ -32,6 +32,9 @@
 		<Reference Include="FrooxEngine">
 			<HintPath>$(ResonitePath)Resonite_Data\Managed\FrooxEngine.dll</HintPath>
 			<Private>False</Private>
+		</Reference>
+		<Reference Include="Elements.Core">
+			<HintPath>$(GamePath)Resonite_Data\Managed\Elements.Core.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 
