@@ -169,15 +169,16 @@ public class HandAligner : ResoniteMod {
 			float angleA = VectorsToAngle(pointAReal, pointAGoal, Axis);
 			float angleB = VectorsToAngle(pointBReal, pointBGoal, Axis);
 
-			floatQ angleABestRotation = floatQ.AxisAngleRad(Axis, angleA);
+			floatQ angleABestRotation = floatQ.AxisAngleRad(Axis, angleA );
 			floatQ angleAWorstRotation = floatQ.AxisAngleRad(Axis, angleA + MathX.PI);
-			floatQ angleBBestRotation = floatQ.AxisAngleRad(Axis, angleB);
+			floatQ angleBBestRotation = floatQ.AxisAngleRad(Axis, angleB );
 			floatQ angleBWorstRotation = floatQ.AxisAngleRad(Axis, angleB + MathX.PI);
 
 			float3 pointABest = angleABestRotation * pointAReal; //quat math isn't commutative lol
 			float3 pointAWorst = angleAWorstRotation * pointAReal;
 			float3 pointBBest = angleBBestRotation * pointBReal;
 			float3 pointBWorst = angleBWorstRotation * pointBReal;
+			Msg("closest point a " + pointABest + " furthest point a " + pointAWorst + " closest point b " + pointBBest + " furthest point b " + pointBWorst);
 
 			float3 pointABest_to_goal = pointAGoal - pointABest;
 			float3 pointAWorst_to_goal = pointAGoal - pointAWorst;
@@ -186,10 +187,15 @@ public class HandAligner : ResoniteMod {
 
 			float powerA = pointAWorst_to_goal.Magnitude - pointABest_to_goal.Magnitude;
 			float powerB = pointBWorst_to_goal.Magnitude - pointBBest_to_goal.Magnitude;
+			Msg("power A = " + powerA);
+			Msg("power B = " + powerB);
 
 			float sum = powerA + powerB;
 			float ratioA = powerA / sum;
 			float ratioB = powerB / sum;
+			Msg("Ratio A = " + ratioA);
+			Msg("Ratio B = " + ratioB);
+			Msg("Ratios added together" + ratioA + ratioB);
 
 			float averageAngle = (float)(angleA * ratioA + angleB * ratioB);
 			floatQ averageRotation = floatQ.AxisAngle(Axis, averageAngle);
@@ -198,26 +204,31 @@ public class HandAligner : ResoniteMod {
 			float3 finalpointB = averageRotation * pointBReal;
 
 			float myScore = (finalpointA - globalFingerTipRef1).Magnitude + (finalpointB - globalFingerTipRef2).Magnitude;
-			Msg("Your score was::" + myScore + " with angle " + averageAngle);
+			Error("Your score was::" + myScore + " with angle " + averageAngle);
+			Msg("First point was " + finalpointA + " Second point was " + finalpointB);
 
 			// now the midpoint is lined up, we just need to rotate around vecToFingerTipMidpoint until the two points are best aligned
 			// there's probably an analytic solution (feel free to PR such a solution) but iterative is good enough for a one-time thing
 			int ITERS = 2000;
-
+			float score = 0;
+			float angleRotation = 0;
+			float bestAngle = 0;
 			float minScore = float.MaxValue;
+			float3 bestpoint1 = float3.Zero;
+			float3 bestpoint2 = float3.Zero;
 			floatQ bestRotation = floatQ.Identity;
 			floatQ baseLocalRotation = avatarCreatorHand.LocalRotation;
 			float3 localPosition = avatarCreatorHand.LocalPosition;
 			float3 globalPosition = avatarCreatorHand.Parent.LocalPointToGlobal(localPosition);
 			float3 globalScale = avatarCreatorHand.Parent.LocalScaleToGlobal(localScale);
 			for (int i = 0; i < ITERS; i++) {
-				float angleRotation = 360f * (i / (float)(ITERS - 1));
+				angleRotation = 360f * (i / (float)(ITERS - 1));
 				floatQ localRotation = baseLocalRotation * floatQ.AxisAngle(localAviTipRefsMidpoint, angleRotation);
 				avatarCreatorHand.LocalRotation = localRotation;
 				float3 point1 = avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef1);
 				float3 point2 = avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef2);
 
-				float score = (point1 - globalFingerTipRef1).Magnitude + (point2 - globalFingerTipRef2).Magnitude;
+				score = (point1 - globalFingerTipRef1).Magnitude + (point2 - globalFingerTipRef2).Magnitude;
 
 				//Msg("Got score:" + score + " with angle " + angleRotation);
 				//Msg("fingerTipRef1: " + globalFingerTipRef1);
@@ -225,13 +236,18 @@ public class HandAligner : ResoniteMod {
 				//Msg("fingerTipRef1: " + globalFingerTipRef2);
 				//Msg("avi tip ref  : " + avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef2));
 				if (score < minScore) {
-					Msg("Got best score:" + score + " with angle " + angleRotation);
 					minScore = score;
 					bestRotation = localRotation;
+					bestAngle = angleRotation;
+					bestpoint1 = point1;
+					bestpoint2 = point2;
 				}
 			}
+			Msg("Got best score:" + minScore + " with angle " + bestAngle);
+			Msg("First point was " + bestpoint2 + " Second point was " + bestpoint2);
 			avatarCreatorHand.LocalRotation = bestRotation;
 		}
+
 
 		static float VectorsToAngle(float3 Vec1, float3 Vec2, float3 Axis) {
 			float dot = MathX.Dot(Vec1, Vec2);
@@ -244,7 +260,7 @@ public class HandAligner : ResoniteMod {
 			float XDot = MathX.Dot(XVector, Vec2);
 			//if the dot product is negative, the angle is obtuse
 			//if the angle from the x axis is obtuse, the vector is in the negative X region
-			float invert = (dot < 0) ? -1 : 1;
+			float invert = (dot < 0) ? 1 : 1;
 			return angle * invert;
 		}
 
