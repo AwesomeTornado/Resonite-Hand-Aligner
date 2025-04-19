@@ -157,7 +157,6 @@ public class HandAligner : ResoniteMod {
 			//or make sure that global and local positions are not doing the same
 			//these could all be using different coordinate systems without telling me.
 
-			//there is a bug somewhere below this comment
 			float3 Axis = localAviTipRefsMidpoint;
 			float3 pointAGoal = avatarCreatorHand.GlobalPointToLocal(globalFingerTipRef1);
 			float3 pointBGoal = avatarCreatorHand.GlobalPointToLocal(globalFingerTipRef2);
@@ -172,7 +171,6 @@ public class HandAligner : ResoniteMod {
 
 			float angleA = VectorsToAngle(pointAReal_to_Axis, pointAGoal_to_Axis, Axis);
 			float angleB = VectorsToAngle(pointBReal_to_Axis, pointBGoal_to_Axis, Axis);
-			//there is a bug somewhere above this comment
 
 			//float angleA = MathX.AngleRad(pointAReal_to_Axis, pointAGoal_to_Axis);
 			//float angleB = MathX.AngleRad(pointBReal_to_Axis, pointBGoal_to_Axis);
@@ -241,7 +239,7 @@ public class HandAligner : ResoniteMod {
 			float3 finalpointA = averageRotation * pointAReal;
 			float3 finalpointB = averageRotation * pointBReal;
 
-			float myScore = (finalpointA - globalFingerTipRef1).Magnitude + (finalpointB - globalFingerTipRef2).Magnitude;
+			float myScore = (avatarCreatorHand.LocalPointToGlobal(finalpointA) - globalFingerTipRef1).Magnitude + (avatarCreatorHand.LocalPointToGlobal(finalpointB) - globalFingerTipRef2).Magnitude;
 			float degreesAngleForPrint = (float)(averageAngle * ((float)180f / Math.PI));
 			Error("Your score was::" + myScore + " with angle " + degreesAngleForPrint);
 			Error("First point was " + finalpointA + " Second point was " + finalpointB);
@@ -299,7 +297,9 @@ public class HandAligner : ResoniteMod {
 			float XDot = MathX.Dot(XVector, Vec2);
 			//if the dot product is negative, the angle is obtuse
 			//if the angle from the x axis is obtuse, the vector is in the negative X region
-			float invert = (XDot > 0) ? 1 : -1;
+			//I don't know why I am inverting this, but it seems to give me the correct answer
+			//It should be > instead of <, but... it works?
+			float invert = (XDot < 0) ? 1 : -1;
 			Warn("VectorsToAngle: invert = " + invert + " angle = " + angle + " XDot = " + XDot);
 			return angle * invert;
 		}
@@ -316,6 +316,8 @@ public class HandAligner : ResoniteMod {
 			float3 pointAReal_to_Axis = pointARealClosestAxisPoint - point;
 			float3 NEWpointAReal_to_Axis = NEWpointARealClosestAxisPoint - point;
 			Warn("PointToVector ran: old value = " + pointAReal_to_Axis + " New value = " + NEWpointAReal_to_Axis);
+			//The hand made calculation and the one that uses the library functions do not give the same answer.
+			//Why? Does it matter? idk
 
 			return pointAReal_to_Axis;
 		}
