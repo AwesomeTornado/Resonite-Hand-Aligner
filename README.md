@@ -3,11 +3,12 @@
 A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that adds more accurate auto alignment of hands when importing avatars. 
 This mod is practically essential for setting up avatars while in desktop mode, and is a great quality of life improvement in VR. When symmetery is turned off, the avatar creator can accurately positions hands in any orientation and location with perfect accuracy. (or at least very good accuracy)
 
-Credit to the code used to position the hands goes entirely to Phylliida. The original code used in this project can be found below.
+Credit to the code used to position the hands goes to Phylliida. The original code used in this project can be found below.
 https://github.com/Phylliida/ResoniteUnityExporter/blob/main/ImportFromUnityLib/ImportAvatar.cs
 
 ## Screenshots
 ![image](https://github.com/user-attachments/assets/25433e6e-94de-4021-b50a-e8346b70b87f)
+![image](https://github.com/user-attachments/assets/cd77329c-290f-4579-869b-425a4bd4cfc4)
 
 *even with asymetric hand placement and irregular rotations, the hands align perfectly*
 
