@@ -1,15 +1,10 @@
 
 using System.Collections.Generic;
 using System.Linq;
-
 using FrooxEngine;
-using FrooxEngine.FinalIK;
 using Elements.Core;
 using HarmonyLib;
-
 using ResoniteModLoader;
-using FrooxEngine.UIX;
-using System.Runtime.CompilerServices;
 
 namespace HandAligner;
 //More info on creating mods can be found https://github.com/resonite-modding-group/ResoniteModLoader/wiki/Creating-Mods
@@ -18,7 +13,7 @@ public class HandAligner : ResoniteMod {
 	public override string Name => "HandAligner";
 	public override string Author => "__Choco__";
 	public override string Version => VERSION_CONSTANT;
-	public override string Link => "https://github.com/resonite-modding-group/HandAligner/";//FIX THIS
+	public override string Link => "https://github.com/AwesomeTornado/Resonite-Hand-Aligner";
 
 	public override void OnEngineInit() {
 		Harmony harmony = new Harmony("com.__Choco__.HandAligner");
@@ -154,8 +149,56 @@ public class HandAligner : ResoniteMod {
 			avatarCreatorHand.LocalRotation = avatarCreatorHand.LocalRotation * lineUpMidpointRotation;
 			// double check we did it right
 			float3 newDirToFingerTipMidpoint = avatarCreatorHand.GlobalPointToLocal(globalFingerTipMidpoint);
-			//ImportFromUnityLib.DebugLog("got new finger tip midpoint:" + newDirToFingerTipMidpoint.Normalized);
-			//ImportFromUnityLib.DebugLog("target direction is        :" + localAviTipRefsMidpoint.Normalized);
+			//Msg("got new finger tip midpoint:" + newDirToFingerTipMidpoint.Normalized);
+			//Msg("target direction is        :" + localAviTipRefsMidpoint.Normalized);
+
+			
+
+			float3 Axis = localAviTipRefsMidpoint;
+			float3 pointAGoal = globalFingerTipRef1;
+			float3 pointBGoal = globalFingerTipRef2;
+			float3 pointAReal = localAviCreatorTipRef1;
+			float3 pointBReal = localAviCreatorTipRef2;
+
+			//these vectors are all in plane
+			float3 pointAReal_to_Axis = PointToVector(pointAReal, Axis);
+			float3 pointBReal_to_Axis = PointToVector(pointBReal, Axis);
+			float3 pointAGoal_to_Axis = PointToVector(pointAGoal, Axis);
+			float3 pointBGoal_to_Axis = PointToVector(pointBGoal, Axis);
+
+			float angleA = VectorsToAngle(pointAReal, pointAGoal, Axis);
+			float angleB = VectorsToAngle(pointBReal, pointBGoal, Axis);
+
+			floatQ angleABestRotation = floatQ.AxisAngleRad(Axis, angleA);
+			floatQ angleAWorstRotation = floatQ.AxisAngleRad(Axis, angleA + MathX.PI);
+			floatQ angleBBestRotation = floatQ.AxisAngleRad(Axis, angleB);
+			floatQ angleBWorstRotation = floatQ.AxisAngleRad(Axis, angleB + MathX.PI);
+
+			float3 pointABest = angleABestRotation * pointAReal; //quat math isn't commutative lol
+			float3 pointAWorst = angleAWorstRotation * pointAReal;
+			float3 pointBBest = angleBBestRotation * pointBReal;
+			float3 pointBWorst = angleBWorstRotation * pointBReal;
+
+			float3 pointABest_to_goal = pointAGoal - pointABest;
+			float3 pointAWorst_to_goal = pointAGoal - pointAWorst;
+			float3 pointBBest_to_goal = pointBGoal - pointBBest;
+			float3 pointBWorst_to_goal = pointBGoal - pointBWorst;
+
+			float powerA = pointAWorst_to_goal.Magnitude - pointABest_to_goal.Magnitude;
+			float powerB = pointBWorst_to_goal.Magnitude - pointBBest_to_goal.Magnitude;
+
+			float sum = powerA + powerB;
+			float ratioA = powerA / sum;
+			float ratioB = powerB / sum;
+
+			float averageAngle = (float)(angleA * ratioA + angleB * ratioB);
+			floatQ averageRotation = floatQ.AxisAngle(Axis, averageAngle);
+
+			float3 finalpointA = averageRotation * pointAReal;
+			float3 finalpointB = averageRotation * pointBReal;
+
+			float myScore = (finalpointA - globalFingerTipRef1).Magnitude + (finalpointB - globalFingerTipRef2).Magnitude;
+			Msg("Your score was::" + myScore + " with angle " + averageAngle);
 
 			// now the midpoint is lined up, we just need to rotate around vecToFingerTipMidpoint until the two points are best aligned
 			// there's probably an analytic solution (feel free to PR such a solution) but iterative is good enough for a one-time thing
@@ -171,25 +214,50 @@ public class HandAligner : ResoniteMod {
 				float angleRotation = 360f * (i / (float)(ITERS - 1));
 				floatQ localRotation = baseLocalRotation * floatQ.AxisAngle(localAviTipRefsMidpoint, angleRotation);
 				avatarCreatorHand.LocalRotation = localRotation;
-				float score = (
-				   avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef1) -
-				   globalFingerTipRef1
-				).Magnitude + (
-				   avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef2) -
-				   globalFingerTipRef2
-				).Magnitude;
-				//ImportFromUnityLib.DebugLog("Got score:" + score + " with angle " + angleRotation);
-				//ImportFromUnityLib.DebugLog("fingerTipRef1: " + globalFingerTipRef1);
-				//ImportFromUnityLib.DebugLog("avi tip ref  : " + avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef1));
-				//ImportFromUnityLib.DebugLog("fingerTipRef1: " + globalFingerTipRef2);
-				//ImportFromUnityLib.DebugLog("avi tip ref  : " + avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef2));
+				float3 point1 = avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef1);
+				float3 point2 = avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef2);
+
+				float score = (point1 - globalFingerTipRef1).Magnitude + (point2 - globalFingerTipRef2).Magnitude;
+
+				//Msg("Got score:" + score + " with angle " + angleRotation);
+				//Msg("fingerTipRef1: " + globalFingerTipRef1);
+				//Msg("avi tip ref  : " + avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef1));
+				//Msg("fingerTipRef1: " + globalFingerTipRef2);
+				//Msg("avi tip ref  : " + avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef2));
 				if (score < minScore) {
-					//ImportFromUnityLib.DebugLog("Got best score:" + score + " with angle " + angleRotation);
+					Msg("Got best score:" + score + " with angle " + angleRotation);
 					minScore = score;
 					bestRotation = localRotation;
 				}
 			}
 			avatarCreatorHand.LocalRotation = bestRotation;
+		}
+
+		static float VectorsToAngle(float3 Vec1, float3 Vec2, float3 Axis) {
+			float dot = MathX.Dot(Vec1, Vec2);
+			float magnitudes = Vec1.Magnitude * Vec2.Magnitude;
+			float dotOverMagnitudes = dot / magnitudes;
+			float angle = MathX.Acos(dotOverMagnitudes); //RADIANS
+
+			//we define vec1 as UP, or Y
+			float3 XVector = MathX.Cross(Vec1, Axis);
+			float XDot = MathX.Dot(XVector, Vec2);
+			//if the dot product is negative, the angle is obtuse
+			//if the angle from the x axis is obtuse, the vector is in the negative X region
+			float invert = (dot < 0) ? -1 : 1;
+			return angle * invert;
+		}
+
+		static float3 PointToVector(float3 point, float3 Axis) {
+			//float3's with _to_ in their name are vectors
+			//float3's without that are points
+			float AxisSquared = Axis.SqrMagnitude;
+			float origin_to_pointAReal_DOT_Axis = MathX.Dot(point, Axis);
+			float scalarDistanceAlong_Axis = origin_to_pointAReal_DOT_Axis / AxisSquared;
+			float3 pointARealClosestAxisPoint = scalarDistanceAlong_Axis * Axis;
+			float3 pointAReal_to_Axis = pointARealClosestAxisPoint - point;
+
+			return pointAReal_to_Axis;
 		}
 
 		static Slot[] GetFingerTips(BipedRig bipedRig, bool rightSide, out float3[] tipRefs, bool includeThumb) {
@@ -198,7 +266,7 @@ public class HandAligner : ResoniteMod {
 			List<Slot> fingerTips = new List<Slot>();
 			List<float3> tipRefsList = new List<float3>();
 			for (int i = 0; i < fingerOrders.Length; i++) {
-				//ImportFromUnityLib.DebugLog("Finger order:" + fingerOrders[i]);
+				//Msg("Finger order:" + fingerOrders[i]);
 				BodyNode[] fingerOrder = fingerOrders[i];
 				// todo: lookup positions for left hand
 				if (!includeThumb && fingerOrder[0].ToString().ToLower().Contains("thumb")) {
@@ -207,16 +275,16 @@ public class HandAligner : ResoniteMod {
 				// get furthest part of finger available
 				Slot fingerTip = null;
 				foreach (BodyNode fingerPart in fingerOrder) {
-					//ImportFromUnityLib.DebugLog("Finger part:" + fingerPart);
+					//Msg("Finger part:" + fingerPart);
 					Slot curTip = bipedRig.TryGetBone(fingerPart);
 					if (curTip != null) {
 						fingerTip = curTip;
 					}
 				}
 				if (fingerTip != null) {
-					//ImportFromUnityLib.DebugLog("Got tip for finger:" + fingerTip + " with i " + i);
+					//Msg("Got tip for finger:" + fingerTip + " with i " + i);
 					tipRefsList.Add(handTipRefs[i]);
-					//ImportFromUnityLib.DebugLog("set tip for finger:" + fingerTip);
+					//Msg("set tip for finger:" + fingerTip);
 					fingerTips.Add(fingerTip);
 				}
 			}
