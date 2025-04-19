@@ -1,4 +1,4 @@
-# ExampleMod
+# Resonite Hand Aligner
 
 A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that adds more accurate auto alignment of hands when importing avatars. 
 This mod is practically essential for setting up avatars while in desktop mode, and is a great quality of life improvement in VR. When symmetery is turned off, the avatar creator can accurately positions hands in any orientation and location with perfect accuracy. (or at least very good accuracy)
