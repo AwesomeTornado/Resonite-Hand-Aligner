@@ -178,7 +178,7 @@ public class HandAligner : ResoniteMod {
 			float3 pointAWorst = angleAWorstRotation * pointAReal;
 			float3 pointBBest = angleBBestRotation * pointBReal;
 			float3 pointBWorst = angleBWorstRotation * pointBReal;
-			Msg("closest point a " + pointABest + " furthest point a " + pointAWorst + " closest point b " + pointBBest + " furthest point b " + pointBWorst);
+			Error("closest a " + pointABest + " furthest a " + pointAWorst + " closest b " + pointBBest + " furthest b " + pointBWorst);
 
 			float3 pointABest_to_goal = pointAGoal - pointABest;
 			float3 pointAWorst_to_goal = pointAGoal - pointAWorst;
@@ -187,15 +187,15 @@ public class HandAligner : ResoniteMod {
 
 			float powerA = pointAWorst_to_goal.Magnitude - pointABest_to_goal.Magnitude;
 			float powerB = pointBWorst_to_goal.Magnitude - pointBBest_to_goal.Magnitude;
-			Msg("power A = " + powerA);
-			Msg("power B = " + powerB);
+			Error("power A = " + powerA);
+			Error("power B = " + powerB);
 
 			float sum = powerA + powerB;
 			float ratioA = powerA / sum;
 			float ratioB = powerB / sum;
-			Msg("Ratio A = " + ratioA);
-			Msg("Ratio B = " + ratioB);
-			Msg("Ratios added together" + ratioA + ratioB);
+			Error("Ratio A = " + ratioA);
+			Error("Ratio B = " + ratioB);
+			Error("Ratios added together" + ratioA + ratioB);
 
 			float averageAngle = (float)(angleA * ratioA + angleB * ratioB);
 			floatQ averageRotation = floatQ.AxisAngle(Axis, averageAngle);
@@ -205,7 +205,7 @@ public class HandAligner : ResoniteMod {
 
 			float myScore = (finalpointA - globalFingerTipRef1).Magnitude + (finalpointB - globalFingerTipRef2).Magnitude;
 			Error("Your score was::" + myScore + " with angle " + averageAngle);
-			Msg("First point was " + finalpointA + " Second point was " + finalpointB);
+			Error("First point was " + finalpointA + " Second point was " + finalpointB);
 
 			// now the midpoint is lined up, we just need to rotate around vecToFingerTipMidpoint until the two points are best aligned
 			// there's probably an analytic solution (feel free to PR such a solution) but iterative is good enough for a one-time thing
@@ -260,7 +260,7 @@ public class HandAligner : ResoniteMod {
 			float XDot = MathX.Dot(XVector, Vec2);
 			//if the dot product is negative, the angle is obtuse
 			//if the angle from the x axis is obtuse, the vector is in the negative X region
-			float invert = (dot < 0) ? 1 : 1;
+			float invert = (dot < 0) ? 1 : -1;
 			return angle * invert;
 		}
 
