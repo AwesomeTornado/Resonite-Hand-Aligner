@@ -247,8 +247,8 @@ public class HandAligner : ResoniteMod {
 
 			float myScore = (finalpointA_global - globalFingerTipRef1).Magnitude + (finalpointB_global - globalFingerTipRef2).Magnitude;
 			float degreesAngleForPrint = (float)(averageAngle * (180f / Math.PI));
-			Error("Your score was::" + myScore + " with angle " + degreesAngleForPrint);
-			Error("First point was " + finalpointA_global + " Second point was " + finalpointB_global);
+			Msg("Your score was::" + myScore + " with angle " + degreesAngleForPrint);
+			Msg("First point was " + finalpointA_global + " Second point was " + finalpointB_global);
 
 			avatarCreatorHand.LocalRotation = avatarCreatorHand.LocalRotation * (floatQ)averageRotation;
 			/*
