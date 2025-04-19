@@ -1,13 +1,17 @@
 # ExampleMod
 
-A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that adds more accurate auto alignment of hands when importing avatars..
-<!-- Edit to describe what your mod does and what it may solve -->
-<!-- If your mod solves an issue, you should link to any relevant issues on the resonite github -->
+A [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader) mod for [Resonite](https://resonite.com/) that adds more accurate auto alignment of hands when importing avatars. 
+This mod is practically essential for setting up avatars while in desktop mode, and is a great quality of life improvement in VR. When symmetery is turned off, the avatar creator can accurately positions hands in any orientation and location with perfect accuracy. (or at least very good accuracy)
+
+Credit to the code used to position the hands goes entirely to Phylliida. The original code used in this project can be found below.
+https://github.com/Phylliida/ResoniteUnityExporter/blob/main/ImportFromUnityLib/ImportAvatar.cs
+
+## Screenshots
+![image](https://github.com/user-attachments/assets/25433e6e-94de-4021-b50a-e8346b70b87f)
+
+*even with asymetric hand placement and irregular rotations, the hands align perfectly*
 
 ## Installation
 1. Install [ResoniteModLoader](https://github.com/resonite-modding-group/ResoniteModLoader).
-1. Place [ExampleModName.dll](https://github.com/YourGithubUsername/YourModRepoName/releases/latest/download/ExampleModName.dll) into your `rml_mods` folder. This folder should be at `C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_mods` for a default install. You can create it if it's missing, or if you launch the game once with ResoniteModLoader installed it will create this folder for you.
+1. Place [ExampleModName.dll](https://github.com/AwesomeTornado/Resonite-Hand-Aligner/releases/latest/download/HandAligner.dll) into your `rml_mods` folder. This folder should be at `C:\Program Files (x86)\Steam\steamapps\common\Resonite\rml_mods` for a default install. You can create it if it's missing, or if you launch the game once with ResoniteModLoader installed it will create this folder for you.
 1. Start the game. If you want to verify that the mod is working you can check your Resonite logs.
-
-
-TODO: FIX THESE LINKS!
