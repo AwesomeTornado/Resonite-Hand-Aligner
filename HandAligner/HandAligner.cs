@@ -5,6 +5,7 @@ using FrooxEngine;
 using Elements.Core;
 using HarmonyLib;
 using ResoniteModLoader;
+using System;
 
 namespace HandAligner;
 //More info on creating mods can be found https://github.com/resonite-modding-group/ResoniteModLoader/wiki/Creating-Mods
@@ -152,11 +153,14 @@ public class HandAligner : ResoniteMod {
 			//Msg("got new finger tip midpoint:" + newDirToFingerTipMidpoint.Normalized);
 			//Msg("target direction is        :" + localAviTipRefsMidpoint.Normalized);
 
-			
+			//make sure that global and local rotations are not causing problems
+			//or make sure that global and local positions are not doing the same
+			//these could all be using different coordinate systems without telling me.
 
+			//there is a bug somewhere below this comment
 			float3 Axis = localAviTipRefsMidpoint;
-			float3 pointAGoal = globalFingerTipRef1;
-			float3 pointBGoal = globalFingerTipRef2;
+			float3 pointAGoal = avatarCreatorHand.GlobalPointToLocal(globalFingerTipRef1);
+			float3 pointBGoal = avatarCreatorHand.GlobalPointToLocal(globalFingerTipRef2);
 			float3 pointAReal = localAviCreatorTipRef1;
 			float3 pointBReal = localAviCreatorTipRef2;
 
@@ -166,8 +170,14 @@ public class HandAligner : ResoniteMod {
 			float3 pointAGoal_to_Axis = PointToVector(pointAGoal, Axis);
 			float3 pointBGoal_to_Axis = PointToVector(pointBGoal, Axis);
 
-			float angleA = VectorsToAngle(pointAReal, pointAGoal, Axis);
-			float angleB = VectorsToAngle(pointBReal, pointBGoal, Axis);
+			float angleA = VectorsToAngle(pointAReal_to_Axis, pointAGoal_to_Axis, Axis);
+			float angleB = VectorsToAngle(pointBReal_to_Axis, pointBGoal_to_Axis, Axis);
+			//there is a bug somewhere above this comment
+
+			//float angleA = MathX.AngleRad(pointAReal_to_Axis, pointAGoal_to_Axis);
+			//float angleB = MathX.AngleRad(pointBReal_to_Axis, pointBGoal_to_Axis);
+
+			Error("angleA = " + (float)(angleA * ((float)180f / Math.PI)) + " angleB = " + (float)(angleB * ((float)180f / Math.PI)));
 
 			floatQ angleABestRotation = floatQ.AxisAngleRad(Axis, angleA );
 			floatQ angleAWorstRotation = floatQ.AxisAngleRad(Axis, angleA + MathX.PI);
@@ -178,33 +188,62 @@ public class HandAligner : ResoniteMod {
 			float3 pointAWorst = angleAWorstRotation * pointAReal;
 			float3 pointBBest = angleBBestRotation * pointBReal;
 			float3 pointBWorst = angleBWorstRotation * pointBReal;
-			Error("closest a " + pointABest + " furthest a " + pointAWorst + " closest b " + pointBBest + " furthest b " + pointBWorst);
+			Error("close a " + pointABest + " furth a " + pointAWorst + " close b " + pointBBest + " furth b " + pointBWorst);
 
 			float3 pointABest_to_goal = pointAGoal - pointABest;
 			float3 pointAWorst_to_goal = pointAGoal - pointAWorst;
+			Warn("pointABest_to_goal.mag = " + pointABest_to_goal.Magnitude + " pointAWorst_to_goal.mag = " + pointAWorst_to_goal.Magnitude);
+			if(pointABest_to_goal.Magnitude > pointAWorst.Magnitude) {
+				Error(" ERROR: pointABest.mag is greater than pointAWorst.mag");
+			}
+			if(pointABest_to_goal.Magnitude <= 0|| pointAWorst.Magnitude <= 0) {
+				Error(" ERROR: time to freak out, the magnitudes are negative or zero");
+				Warn("vectorAbest " + pointABest_to_goal);
+				Warn("vectorAworst " + pointAWorst_to_goal);
+				//these are impossible error messages, remove later.
+			}
 			float3 pointBBest_to_goal = pointBGoal - pointBBest;
 			float3 pointBWorst_to_goal = pointBGoal - pointBWorst;
+			Warn("pointBBest_to_goal.mag = " + pointBBest_to_goal.Magnitude + " pointBWorst_to_goal.mag = " + pointBWorst_to_goal.Magnitude);
+			if (pointBBest_to_goal.Magnitude > pointBWorst.Magnitude) {
+				Error(" ERROR: pointBBest.mag is greater than pointBWorst.mag");
+			}
+			if (pointBBest_to_goal.Magnitude <= 0 || pointBWorst.Magnitude <= 0) {
+				Error(" ERROR: time to freak out, the magnitudes are negative or zero");
+				Warn("vectorBbest " + pointBBest_to_goal);
+				Warn("vectorBworst " + pointBWorst_to_goal);
+				//these are impossible error messages, remove later.
+			}
 
-			float powerA = pointAWorst_to_goal.Magnitude - pointABest_to_goal.Magnitude;
+			float powerA = pointAWorst_to_goal.Magnitude - pointABest_to_goal.Magnitude;//something failed if we have a negative power (TODO: Think of more of this kind of check)
 			float powerB = pointBWorst_to_goal.Magnitude - pointBBest_to_goal.Magnitude;
-			Error("power A = " + powerA);
-			Error("power B = " + powerB);
+			if (powerA < 0 || powerB < 0) {
+				Error(" ERROR: One or more powers are negative");
+				Error("power A = " + powerA);
+				Error("power B = " + powerB);
+			}
 
 			float sum = powerA + powerB;
 			float ratioA = powerA / sum;
 			float ratioB = powerB / sum;
 			Error("Ratio A = " + ratioA);
 			Error("Ratio B = " + ratioB);
-			Error("Ratios added together" + ratioA + ratioB);
+			if (MathX.Abs(ratioA + ratioB - 1) > 0.0001) {
+				Error("Ratios added together DO NOT EQUAL ONE!!!!!! ERROR: ratios added are: " + (ratioA + ratioB));
+				Error("power A = " + powerA);
+				Error("power B = " + powerB);
+			}
+			
 
 			float averageAngle = (float)(angleA * ratioA + angleB * ratioB);
-			floatQ averageRotation = floatQ.AxisAngle(Axis, averageAngle);
+			floatQ averageRotation = floatQ.AxisAngleRad(Axis, averageAngle);
 
 			float3 finalpointA = averageRotation * pointAReal;
 			float3 finalpointB = averageRotation * pointBReal;
 
 			float myScore = (finalpointA - globalFingerTipRef1).Magnitude + (finalpointB - globalFingerTipRef2).Magnitude;
-			Error("Your score was::" + myScore + " with angle " + averageAngle);
+			float degreesAngleForPrint = (float)(averageAngle * ((float)180f / Math.PI));
+			Error("Your score was::" + myScore + " with angle " + degreesAngleForPrint);
 			Error("First point was " + finalpointA + " Second point was " + finalpointB);
 
 			// now the midpoint is lined up, we just need to rotate around vecToFingerTipMidpoint until the two points are best aligned
@@ -218,9 +257,9 @@ public class HandAligner : ResoniteMod {
 			float3 bestpoint2 = float3.Zero;
 			floatQ bestRotation = floatQ.Identity;
 			floatQ baseLocalRotation = avatarCreatorHand.LocalRotation;
-			float3 localPosition = avatarCreatorHand.LocalPosition;
-			float3 globalPosition = avatarCreatorHand.Parent.LocalPointToGlobal(localPosition);
-			float3 globalScale = avatarCreatorHand.Parent.LocalScaleToGlobal(localScale);
+			//float3 localPosition = avatarCreatorHand.LocalPosition;
+			//float3 globalPosition = avatarCreatorHand.Parent.LocalPointToGlobal(localPosition);
+			//float3 globalScale = avatarCreatorHand.Parent.LocalScaleToGlobal(localScale);
 			for (int i = 0; i < ITERS; i++) {
 				angleRotation = 360f * (i / (float)(ITERS - 1));
 				floatQ localRotation = baseLocalRotation * floatQ.AxisAngle(localAviTipRefsMidpoint, angleRotation);
@@ -260,7 +299,8 @@ public class HandAligner : ResoniteMod {
 			float XDot = MathX.Dot(XVector, Vec2);
 			//if the dot product is negative, the angle is obtuse
 			//if the angle from the x axis is obtuse, the vector is in the negative X region
-			float invert = (dot < 0) ? 1 : -1;
+			float invert = (XDot > 0) ? 1 : -1;
+			Warn("VectorsToAngle: invert = " + invert + " angle = " + angle + " XDot = " + XDot);
 			return angle * invert;
 		}
 
@@ -271,7 +311,11 @@ public class HandAligner : ResoniteMod {
 			float origin_to_pointAReal_DOT_Axis = MathX.Dot(point, Axis);
 			float scalarDistanceAlong_Axis = origin_to_pointAReal_DOT_Axis / AxisSquared;
 			float3 pointARealClosestAxisPoint = scalarDistanceAlong_Axis * Axis;
+
+			float3 NEWpointARealClosestAxisPoint = MathX.ClosestPointOnLine(float3.Zero, Axis, point);
 			float3 pointAReal_to_Axis = pointARealClosestAxisPoint - point;
+			float3 NEWpointAReal_to_Axis = NEWpointARealClosestAxisPoint - point;
+			Warn("PointToVector ran: old value = " + pointAReal_to_Axis + " New value = " + NEWpointAReal_to_Axis);
 
 			return pointAReal_to_Axis;
 		}
