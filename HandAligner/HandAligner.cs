@@ -169,13 +169,12 @@ public class HandAligner : ResoniteMod {
 			float3 pointAGoal_to_Axis = PointToVector(pointAGoal, Axis);
 			float3 pointBGoal_to_Axis = PointToVector(pointBGoal, Axis);
 
+			//I am using a custom implementation of MathX.AngleRad here because 
+			//mathx.anglerad can not return negative angles.
 			float angleA = VectorsToAngle(pointAReal_to_Axis, pointAGoal_to_Axis, Axis);
 			float angleB = VectorsToAngle(pointBReal_to_Axis, pointBGoal_to_Axis, Axis);
 
-			//float angleA = MathX.AngleRad(pointAReal_to_Axis, pointAGoal_to_Axis);
-			//float angleB = MathX.AngleRad(pointBReal_to_Axis, pointBGoal_to_Axis);
-
-			Error("angleA = " + (float)(angleA * ((float)180f / Math.PI)) + " angleB = " + (float)(angleB * ((float)180f / Math.PI)));
+			//Error("angleA = " + (float)(angleA * ((float)180f / Math.PI)) + " angleB = " + (float)(angleB * ((float)180f / Math.PI)));
 
 			floatQ angleABestRotation = floatQ.AxisAngleRad(Axis, angleA );
 			floatQ angleAWorstRotation = floatQ.AxisAngleRad(Axis, angleA + MathX.PI);
@@ -186,11 +185,11 @@ public class HandAligner : ResoniteMod {
 			float3 pointAWorst = angleAWorstRotation * pointAReal;
 			float3 pointBBest = angleBBestRotation * pointBReal;
 			float3 pointBWorst = angleBWorstRotation * pointBReal;
-			Error("close a " + pointABest + " furth a " + pointAWorst + " close b " + pointBBest + " furth b " + pointBWorst);
+			//Error("close a " + pointABest + " furth a " + pointAWorst + " close b " + pointBBest + " furth b " + pointBWorst);
 
 			float3 pointABest_to_goal = pointAGoal - pointABest;
 			float3 pointAWorst_to_goal = pointAGoal - pointAWorst;
-			Warn("pointABest_to_goal.mag = " + pointABest_to_goal.Magnitude + " pointAWorst_to_goal.mag = " + pointAWorst_to_goal.Magnitude);
+			//Warn("pointABest_to_goal.mag = " + pointABest_to_goal.Magnitude + " pointAWorst_to_goal.mag = " + pointAWorst_to_goal.Magnitude);
 			if(pointABest_to_goal.Magnitude > pointAWorst.Magnitude) {
 				Error(" ERROR: pointABest.mag is greater than pointAWorst.mag");
 			}
@@ -202,7 +201,7 @@ public class HandAligner : ResoniteMod {
 			}
 			float3 pointBBest_to_goal = pointBGoal - pointBBest;
 			float3 pointBWorst_to_goal = pointBGoal - pointBWorst;
-			Warn("pointBBest_to_goal.mag = " + pointBBest_to_goal.Magnitude + " pointBWorst_to_goal.mag = " + pointBWorst_to_goal.Magnitude);
+			//Warn("pointBBest_to_goal.mag = " + pointBBest_to_goal.Magnitude + " pointBWorst_to_goal.mag = " + pointBWorst_to_goal.Magnitude);
 			if (pointBBest_to_goal.Magnitude > pointBWorst.Magnitude) {
 				Error(" ERROR: pointBBest.mag is greater than pointBWorst.mag");
 			}
@@ -224,8 +223,8 @@ public class HandAligner : ResoniteMod {
 			float sum = powerA + powerB;
 			float ratioA = powerA / sum;
 			float ratioB = powerB / sum;
-			Error("Ratio A = " + ratioA);
-			Error("Ratio B = " + ratioB);
+			//Error("Ratio A = " + ratioA);
+			//Error("Ratio B = " + ratioB);
 			if (MathX.Abs(ratioA + ratioB - 1) > 0.0001) {
 				Error("Ratios added together DO NOT EQUAL ONE!!!!!! ERROR: ratios added are: " + (ratioA + ratioB));
 				Error("power A = " + powerA);
@@ -239,10 +238,13 @@ public class HandAligner : ResoniteMod {
 			float3 finalpointA = averageRotation * pointAReal;
 			float3 finalpointB = averageRotation * pointBReal;
 
-			float myScore = (avatarCreatorHand.LocalPointToGlobal(finalpointA) - globalFingerTipRef1).Magnitude + (avatarCreatorHand.LocalPointToGlobal(finalpointB) - globalFingerTipRef2).Magnitude;
+			float3 finalpointA_global = avatarCreatorHand.LocalPointToGlobal(finalpointA);
+			float3 finalpointB_global = avatarCreatorHand.LocalPointToGlobal(finalpointB);
+
+			float myScore = (finalpointA_global - globalFingerTipRef1).Magnitude + (finalpointB_global - globalFingerTipRef2).Magnitude;
 			float degreesAngleForPrint = (float)(averageAngle * ((float)180f / Math.PI));
 			Error("Your score was::" + myScore + " with angle " + degreesAngleForPrint);
-			Error("First point was " + finalpointA + " Second point was " + finalpointB);
+			Error("First point was " + finalpointA_global + " Second point was " + finalpointB_global);
 
 			// now the midpoint is lined up, we just need to rotate around vecToFingerTipMidpoint until the two points are best aligned
 			// there's probably an analytic solution (feel free to PR such a solution) but iterative is good enough for a one-time thing
@@ -281,7 +283,16 @@ public class HandAligner : ResoniteMod {
 				}
 			}
 			Msg("Got best score:" + minScore + " with angle " + bestAngle);
-			Msg("First point was " + bestpoint2 + " Second point was " + bestpoint2);
+			Msg("First point was " + bestpoint1 + " Second point was " + bestpoint2);
+			if(myScore > minScore) {
+				Warn("Score comparison: Iterative wins!");
+			} else if (myScore < minScore) {
+				Warn("Score comparison: Analytical wins!");
+			} else {
+				Warn("Score comparison: Its a tie!");
+			}
+			Warn("Iterative: " + minScore + " Analytical: " + myScore + "Marigin: " + (myScore - minScore));
+			Warn("Distances: Point ONE = " + (bestpoint1 - finalpointA_global).Magnitude + " Point TWO = " + (bestpoint2 - finalpointB_global).Magnitude);
 			avatarCreatorHand.LocalRotation = bestRotation;
 		}
 
@@ -300,7 +311,7 @@ public class HandAligner : ResoniteMod {
 			//I don't know why I am inverting this, but it seems to give me the correct answer
 			//It should be > instead of <, but... it works?
 			float invert = (XDot < 0) ? 1 : -1;
-			Warn("VectorsToAngle: invert = " + invert + " angle = " + angle + " XDot = " + XDot);
+			//Warn("VectorsToAngle: invert = " + invert + " angle = " + angle + " XDot = " + XDot);
 			return angle * invert;
 		}
 
@@ -315,9 +326,9 @@ public class HandAligner : ResoniteMod {
 			float3 NEWpointARealClosestAxisPoint = MathX.ClosestPointOnLine(float3.Zero, Axis, point);
 			float3 pointAReal_to_Axis = pointARealClosestAxisPoint - point;
 			float3 NEWpointAReal_to_Axis = NEWpointARealClosestAxisPoint - point;
-			Warn("PointToVector ran: old value = " + pointAReal_to_Axis + " New value = " + NEWpointAReal_to_Axis);
+			//Warn("PointToVector ran: old value = " + pointAReal_to_Axis + " New value = " + NEWpointAReal_to_Axis);
 			//The hand made calculation and the one that uses the library functions do not give the same answer.
-			//Why? Does it matter? idk
+			//Why? Does it matter? idk, untested
 
 			return pointAReal_to_Axis;
 		}
