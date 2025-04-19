@@ -6,30 +6,7 @@ using FrooxEngine;
 using FrooxEngine.FinalIK;
 using Elements.Core;
 using HarmonyLib;
-using FrooxEngine.CommonAvatar;
-using ResoniteModLoader;
 
-using System.Reflection;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using Elements.Core;
-using FrooxEngine;
-using FrooxEngine.UIX;
-using HarmonyLib;
 using ResoniteModLoader;
 
 namespace HandAligner;
@@ -47,31 +24,33 @@ public class HandAligner : ResoniteMod {
 	}
 
 	//Example of how a HarmonyPatch can be formatted, Note that the following isn't a real patch and will not compile.
-	[HarmonyPatch(typeof(AvatarCreator), "AlignHands", MethodType.Normal)]
+	[HarmonyPatch(typeof(AvatarCreator), "TryGetBipedFromHead", MethodType.Normal)]
 	
 	class AlignAvatarHands {
 		static bool Prefix(AvatarCreator __instance) {
 			Msg("Prefix from HandAligner");
 			//Traverse might help with this?
-			/*
-			List<Slot> list;
-			BipedRig biped = __instance.TryGetBipedFromHead(out list);
+			
+			List<Slot> list = new List<Slot>();
+			var avatarCreator_2 = Traverse.Create(__instance);
+			BipedRig biped = (BipedRig)avatarCreator_2.Method("TryGetBipedFromHead", new object[] { list }).GetValue();
+
 			if (biped == null || !biped.IsValid) {
 				return true;
 			}
-			VRIK ik = biped.Slot.GetComponentInChild__instancerenOrParents<VRIK>(null, false);
+			VRIK ik = biped.Slot.GetComponentInChildrenOrParents<VRIK>(null, false);
 			if (ik == null) {
 				return true;
 			}
-			Slot leftRef = __instance._leftReference.Target;
-			Slot target = __instance._rightReference.Target;
+			Slot leftRef = (avatarCreator_2.Field("_leftReference").GetValue() as SyncRef<Slot>).Target; //__instance._leftReference.Target;
+			Slot target = (avatarCreator_2.Field("_rightReference").GetValue() as SyncRef<Slot>).Target; //__instance._rightReference.Target;
 			Slot leftHand = biped[BodyNode.LeftHand];
 			Slot rightHand = biped[BodyNode.RightHand];
 			IKSolverVR.Arm leftArmIk = ik.Solver.leftArm;
 			IKSolverVR.Arm rightArmIk = ik.Solver.rightArm;
 			leftRef.GlobalPosition = leftHand.GlobalPosition;
 			target.GlobalPosition = rightHand.GlobalPosition;
-			*/
+			
 			return false;
 		}
 
