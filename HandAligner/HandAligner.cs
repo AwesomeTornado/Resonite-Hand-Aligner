@@ -29,7 +29,7 @@ public class HandAligner : ResoniteMod {
 		static BipedRig biped_cache;
 
 		static void AlignHands(AvatarCreator __instance) {
-			Warn("Remember to turn off symmetery!!!! (this message always appears)");
+			Warn("Remember to turn off symmetry!!!! (this message always appears)");
 
 			BipedRig biped = biped_cache;
 			Msg("Instantiated \"biped\"");
