@@ -29,37 +29,24 @@ public class HandAligner : ResoniteMod {
 		static BipedRig biped_cache;
 
 		static void AlignHands(AvatarCreator __instance) {
-			Warn("Remember to turn off symmetry!!!! (this message always appears)");
+			Warn("Remember to turn off symmetry! (this message always appears)");
 
 			BipedRig biped = biped_cache;
-			Msg("Instantiated \"biped\"");
-			if (biped == null) {
-				Error("Invalid BipedRig, null");
+			if (biped == null || !biped.IsValid) {
+				Error("Invalid BipedRig");
 				return;
 			}
-			if (!biped.IsValid) {
-				Error("Invalid BipedRig, invalid");
-				return;
-			}
-			Msg("var \"biped\" passed null and validity checks successfully.");
 
 			SetAviCreatorHandRotation(biped, __instance, float3.One, true);
 			SetAviCreatorHandRotation(biped, __instance, float3.One, false);
-
-			Msg("Function ran successfully!");
 		}
 
 		static void trygetbipedfromhead(AvatarCreator __instance, ref BipedRig __result) {
-			if (__result is null) {
-				Error("Biped rig is null");
+			if (__result is null || !__result.IsValid) {
+				Error("Invalid BipedRig");
 				return;
 			}
-			if (!__result.IsValid) {
-				Error("Biped rig is invalid");
-				return;
-			}
-			Msg("trygetbipedfromhead success, caching");
-			//this is... the wrong way to get the biped rig.
+			//this feels like the wrong way to get the biped rig.
 			//Regardless, it works, so it stays.
 			biped_cache = __result;
 		}
@@ -200,7 +187,7 @@ public class HandAligner : ResoniteMod {
 			double3 pointAWorst_to_goal = pointAGoal - pointAWorst;
 			//Warn("pointABest_to_goal.mag = " + pointABest_to_goal.Magnitude + " pointAWorst_to_goal.mag = " + pointAWorst_to_goal.Magnitude);
 			if(pointABest_to_goal.Magnitude > pointAWorst.Magnitude) {
-				Error(" ERROR: pointABest.mag is greater than pointAWorst.mag");
+				Error("pointABest.mag is greater than pointAWorst.mag");
 			}
 
 			//find the distance to goal point for best and worst case.
@@ -209,7 +196,7 @@ public class HandAligner : ResoniteMod {
 			double3 pointBWorst_to_goal = pointBGoal - pointBWorst;
 			//Warn("pointBBest_to_goal.mag = " + pointBBest_to_goal.Magnitude + " pointBWorst_to_goal.mag = " + pointBWorst_to_goal.Magnitude);
 			if (pointBBest_to_goal.Magnitude > pointBWorst.Magnitude) {
-				Error(" ERROR: pointBBest.mag is greater than pointBWorst.mag");
+				Error("pointBBest.mag is greater than pointBWorst.mag");
 			}
 
 			//the power, or "significance" of each point is equal to its potential to affect the score.
@@ -217,7 +204,7 @@ public class HandAligner : ResoniteMod {
 			double powerA = pointAWorst_to_goal.Magnitude - pointABest_to_goal.Magnitude;
 			double powerB = pointBWorst_to_goal.Magnitude - pointBBest_to_goal.Magnitude;
 			if (powerA < 0 || powerB < 0) {
-				Error(" ERROR: One or more powers are negative");
+				Error("One or more powers are negative");
 				Error("power A = " + powerA);
 				Error("power B = " + powerB);
 			}
@@ -226,10 +213,10 @@ public class HandAligner : ResoniteMod {
 			double sum = powerA + powerB;
 			double ratioA = powerA / sum;
 			double ratioB = powerB / sum;
-			//Error("Ratio A = " + ratioA);
-			//Error("Ratio B = " + ratioB);
-			if (MathX.Abs(ratioA + ratioB - 1) > 0.0001) {
-				Error("Ratios added together DO NOT EQUAL ONE!!!!!! ERROR: ratios added are: " + (ratioA + ratioB));
+			if (MathX.Abs(ratioA + ratioB - 1) > 0.01) {
+				Error("Ratios added together do not equal one. \nratios added are: " + (ratioA + ratioB));
+				Error("Ratio A = " + ratioA);
+				Error("Ratio B = " + ratioB);
 				Error("power A = " + powerA);
 				Error("power B = " + powerB);
 			}
@@ -239,7 +226,7 @@ public class HandAligner : ResoniteMod {
 			doubleQ averageRotation = doubleQ.AxisAngleRad(Axis, averageAngle);
 
 			//finally, actually evaluate what these rotations mean for our points.
-			double3 finalpointA = averageRotation * pointAReal;
+			double3 finalpointA = averageRotation * pointAReal;	
 			double3 finalpointB = averageRotation * pointBReal;
 
 			float3 finalpointA_global = avatarCreatorHand.LocalPointToGlobal((float3)finalpointA);
@@ -247,60 +234,8 @@ public class HandAligner : ResoniteMod {
 
 			float myScore = (finalpointA_global - globalFingerTipRef1).Magnitude + (finalpointB_global - globalFingerTipRef2).Magnitude;
 			float degreesAngleForPrint = (float)(averageAngle * (180f / Math.PI));
-			Msg("Your score was::" + myScore + " with angle " + degreesAngleForPrint);
-			Msg("First point was " + finalpointA_global + " Second point was " + finalpointB_global);
 
 			avatarCreatorHand.LocalRotation = avatarCreatorHand.LocalRotation * (floatQ)averageRotation;
-			/*
-			// now the midpoint is lined up, we just need to rotate around vecToFingerTipMidpoint until the two points are best aligned
-			// there's probably an analytic solution (feel free to PR such a solution) but iterative is good enough for a one-time thing
-			int ITERS = 2000;
-			float score = 0;
-			float angleRotation = 0;
-			float bestAngle = 0;
-			float minScore = float.MaxValue;
-			float3 bestpoint1 = float3.Zero;
-			float3 bestpoint2 = float3.Zero;
-			floatQ bestRotation = floatQ.Identity;
-			floatQ baseLocalRotation = avatarCreatorHand.LocalRotation;
-			//float3 localPosition = avatarCreatorHand.LocalPosition;
-			//float3 globalPosition = avatarCreatorHand.Parent.LocalPointToGlobal(localPosition);
-			//float3 globalScale = avatarCreatorHand.Parent.LocalScaleToGlobal(localScale);
-			for (int i = 0; i < ITERS; i++) {
-				angleRotation = 360f * (i / (float)(ITERS - 1));
-				floatQ localRotation = baseLocalRotation * floatQ.AxisAngle(localAviTipRefsMidpoint, angleRotation);
-				avatarCreatorHand.LocalRotation = localRotation;
-				float3 point1 = avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef1);
-				float3 point2 = avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef2);
-
-				score = (point1 - globalFingerTipRef1).Magnitude + (point2 - globalFingerTipRef2).Magnitude;
-
-				//Msg("Got score:" + score + " with angle " + angleRotation);
-				//Msg("fingerTipRef1: " + globalFingerTipRef1);
-				//Msg("avi tip ref  : " + avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef1));
-				//Msg("fingerTipRef1: " + globalFingerTipRef2);
-				//Msg("avi tip ref  : " + avatarCreatorHand.LocalPointToGlobal(localAviCreatorTipRef2));
-				if (score < minScore) {
-					minScore = score;
-					bestRotation = localRotation;
-					bestAngle = angleRotation;
-					bestpoint1 = point1;
-					bestpoint2 = point2;
-				}
-			}
-			Msg("Got best score:" + minScore + " with angle " + bestAngle);
-			Msg("First point was " + bestpoint1 + " Second point was " + bestpoint2);
-			if(myScore > minScore) {
-				Warn("Score comparison: Iterative wins!");
-			} else if (myScore < minScore) {
-				Warn("Score comparison: Analytical wins!");
-			} else {
-				Warn("Score comparison: Its a tie!");
-			}
-			Warn("Iterative: " + minScore + " Analytical: " + myScore + " Marigin: " + (myScore - minScore));
-			Warn("Distances: Point ONE = " + (bestpoint1 - finalpointA_global).Magnitude + " Point TWO = " + (bestpoint2 - finalpointB_global).Magnitude);
-			avatarCreatorHand.LocalRotation = bestRotation;
-			*/
 		}
 
 
