@@ -6,11 +6,12 @@ using Elements.Core;
 using HarmonyLib;
 using ResoniteModLoader;
 using System;
+using Renderite.Shared;
 
 namespace HandAligner;
 //More info on creating mods can be found https://github.com/resonite-modding-group/ResoniteModLoader/wiki/Creating-Mods
 public class HandAligner : ResoniteMod {
-	internal const string VERSION_CONSTANT = "1.0.1"; //Changing the version here updates it in all locations needed
+	internal const string VERSION_CONSTANT = "2.0.0"; //Changing the version here updates it in all locations needed
 	public override string Name => "HandAligner";
 	public override string Author => "__Choco__";
 	public override string Version => VERSION_CONSTANT;
