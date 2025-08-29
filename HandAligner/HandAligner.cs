@@ -11,7 +11,7 @@ using System;
 namespace HandAligner;
 //More info on creating mods can be found https://github.com/resonite-modding-group/ResoniteModLoader/wiki/Creating-Mods
 public class HandAligner : ResoniteMod {
-	internal const string VERSION_CONSTANT = "1.0.1"; //Changing the version here updates it in all locations needed
+	internal const string VERSION_CONSTANT = "2.0.0"; //Changing the version here updates it in all locations needed
 	public override string Name => "HandAligner";
 	public override string Author => "__Choco__";
 	public override string Version => VERSION_CONSTANT;
@@ -148,44 +148,44 @@ public class HandAligner : ResoniteMod {
 			//and only loses by numbers that are as small as XX*10^-5
 
 			//define our starting variables.
-			double3 Axis = localAviTipRefsMidpoint;
-			double3 pointAGoal = avatarCreatorHand.GlobalPointToLocal(globalFingerTipRef1);
-			double3 pointBGoal = avatarCreatorHand.GlobalPointToLocal(globalFingerTipRef2);
-			double3 pointAReal = localAviCreatorTipRef1;
-			double3 pointBReal = localAviCreatorTipRef2;
+			float3 Axis = localAviTipRefsMidpoint;
+			float3 pointAGoal = avatarCreatorHand.GlobalPointToLocal(globalFingerTipRef1);
+			float3 pointBGoal = avatarCreatorHand.GlobalPointToLocal(globalFingerTipRef2);
+			float3 pointAReal = localAviCreatorTipRef1;
+			float3 pointBReal = localAviCreatorTipRef2;
 
 			//these vectors are all in plane
-			double3 pointAReal_to_Axis = PointToVector(pointAReal, Axis);
-			double3 pointBReal_to_Axis = PointToVector(pointBReal, Axis);
-			double3 pointAGoal_to_Axis = PointToVector(pointAGoal, Axis);
-			double3 pointBGoal_to_Axis = PointToVector(pointBGoal, Axis);
+			float3 pointAReal_to_Axis = PointToVector(pointAReal, Axis);
+			float3 pointBReal_to_Axis = PointToVector(pointBReal, Axis);
+			float3 pointAGoal_to_Axis = PointToVector(pointAGoal, Axis);
+			float3 pointBGoal_to_Axis = PointToVector(pointBGoal, Axis);
 
 			//I am using a custom implementation of MathX.AngleRad here because 
 			//mathx.anglerad can not return negative angles.
 			//this calculates the distance each point needs to rotate to have ideal orientation
-			double angleA = VectorsToAngle(pointAReal_to_Axis, pointAGoal_to_Axis, Axis);
-			double angleB = VectorsToAngle(pointBReal_to_Axis, pointBGoal_to_Axis, Axis);
+			float angleA = VectorsToAngle(pointAReal_to_Axis, pointAGoal_to_Axis, Axis);
+			float angleB = VectorsToAngle(pointBReal_to_Axis, pointBGoal_to_Axis, Axis);
 
 			//Error("angleA = " + (float)(angleA * ((float)180f / Math.PI)) + " angleB = " + (float)(angleB * ((float)180f / Math.PI)));
 
 			//calculate the best possible rotation and the worst possible rotation
-			doubleQ angleABestRotation = doubleQ.AxisAngleRad(Axis, angleA );
-			doubleQ angleAWorstRotation = doubleQ.AxisAngleRad(Axis, angleA + MathX.PI);
-			doubleQ angleBBestRotation = doubleQ.AxisAngleRad(Axis, angleB );
-			doubleQ angleBWorstRotation = doubleQ.AxisAngleRad(Axis, angleB + MathX.PI);
+			floatQ angleABestRotation = floatQ.AxisAngleRad(Axis, angleA );
+			floatQ angleAWorstRotation = floatQ.AxisAngleRad(Axis, angleA + MathX.PI);
+			floatQ angleBBestRotation = floatQ.AxisAngleRad(Axis, angleB );
+			floatQ angleBWorstRotation = floatQ.AxisAngleRad(Axis, angleB + MathX.PI);
 
 			//find the real world values of rotating the points by the earlier values
 			//This will be used for weighting later.
-			double3 pointABest = angleABestRotation * pointAReal; //quat math isn't commutative lol
-			double3 pointAWorst = angleAWorstRotation * pointAReal;
-			double3 pointBBest = angleBBestRotation * pointBReal;
-			double3 pointBWorst = angleBWorstRotation * pointBReal;
+			float3 pointABest = angleABestRotation * pointAReal; //quat math isn't commutative lol
+			float3 pointAWorst = angleAWorstRotation * pointAReal;
+			float3 pointBBest = angleBBestRotation * pointBReal;
+			float3 pointBWorst = angleBWorstRotation * pointBReal;
 			//Error("close a " + pointABest + " furth a " + pointAWorst + " close b " + pointBBest + " furth b " + pointBWorst);
 
 			//find the distance to goal point for best and worst case.
 			//This will be used for weighting later.
-			double3 pointABest_to_goal = pointAGoal - pointABest;
-			double3 pointAWorst_to_goal = pointAGoal - pointAWorst;
+			float3 pointABest_to_goal = pointAGoal - pointABest;
+			float3 pointAWorst_to_goal = pointAGoal - pointAWorst;
 			//Warn("pointABest_to_goal.mag = " + pointABest_to_goal.Magnitude + " pointAWorst_to_goal.mag = " + pointAWorst_to_goal.Magnitude);
 			if(pointABest_to_goal.Magnitude > pointAWorst.Magnitude) {
 				Error("pointABest.mag is greater than pointAWorst.mag");
@@ -193,8 +193,8 @@ public class HandAligner : ResoniteMod {
 
 			//find the distance to goal point for best and worst case.
 			//This will be used for weighting later.
-			double3 pointBBest_to_goal = pointBGoal - pointBBest;
-			double3 pointBWorst_to_goal = pointBGoal - pointBWorst;
+			float3 pointBBest_to_goal = pointBGoal - pointBBest;
+			float3 pointBWorst_to_goal = pointBGoal - pointBWorst;
 			//Warn("pointBBest_to_goal.mag = " + pointBBest_to_goal.Magnitude + " pointBWorst_to_goal.mag = " + pointBWorst_to_goal.Magnitude);
 			if (pointBBest_to_goal.Magnitude > pointBWorst.Magnitude) {
 				Error("pointBBest.mag is greater than pointBWorst.mag");
@@ -202,8 +202,8 @@ public class HandAligner : ResoniteMod {
 
 			//the power, or "significance" of each point is equal to its potential to affect the score.
 			//potential to affect the score is defined as the worst score minus the best score.
-			double powerA = pointAWorst_to_goal.Magnitude - pointABest_to_goal.Magnitude;
-			double powerB = pointBWorst_to_goal.Magnitude - pointBBest_to_goal.Magnitude;
+			float powerA = pointAWorst_to_goal.Magnitude - pointABest_to_goal.Magnitude;
+			float powerB = pointBWorst_to_goal.Magnitude - pointBBest_to_goal.Magnitude;
 			if (powerA < 0 || powerB < 0) {
 				Error("One or more powers are negative");
 				Error("power A = " + powerA);
@@ -211,9 +211,9 @@ public class HandAligner : ResoniteMod {
 			}
 
 			//turn the powers into ratios so that we can use them to weight the rotations
-			double sum = powerA + powerB;
-			double ratioA = powerA / sum;
-			double ratioB = powerB / sum;
+			float sum = powerA + powerB;
+			float ratioA = powerA / sum;
+			float ratioB = powerB / sum;
 			if (MathX.Abs(ratioA + ratioB - 1) > 0.01) {
 				Error("Ratios added together do not equal one. \nratios added are: " + (ratioA + ratioB));
 				Error("Ratio A = " + ratioA);
@@ -223,12 +223,12 @@ public class HandAligner : ResoniteMod {
 			}
 
 			//calculate the average angle weighted by the importance to the score
-			double averageAngle = (double)(angleA * ratioA + angleB * ratioB);
-			doubleQ averageRotation = doubleQ.AxisAngleRad(Axis, averageAngle);
+			float averageAngle = (angleA * ratioA + angleB * ratioB);
+			floatQ averageRotation = floatQ.AxisAngleRad(Axis, averageAngle);
 
 			//finally, actually evaluate what these rotations mean for our points.
-			double3 finalpointA = averageRotation * pointAReal;	
-			double3 finalpointB = averageRotation * pointBReal;
+			float3 finalpointA = averageRotation * pointAReal;	
+			float3 finalpointB = averageRotation * pointBReal;
 
 			float3 finalpointA_global = avatarCreatorHand.LocalPointToGlobal((float3)finalpointA);
 			float3 finalpointB_global = avatarCreatorHand.LocalPointToGlobal((float3)finalpointB);
@@ -240,33 +240,33 @@ public class HandAligner : ResoniteMod {
 		}
 
 
-		static double VectorsToAngle(double3 Vec1, double3 Vec2, double3 Axis) {
-			double dot = MathX.Dot(Vec1, Vec2);
-			double magnitudes = Vec1.Magnitude * Vec2.Magnitude;
-			double dotOverMagnitudes = dot / magnitudes;
-			double angle = MathX.Acos(dotOverMagnitudes); //RADIANS
+		static float VectorsToAngle(float3 Vec1, float3 Vec2, float3 Axis) {
+			float dot = MathX.Dot(Vec1, Vec2);
+			float magnitudes = Vec1.Magnitude * Vec2.Magnitude;
+			float dotOverMagnitudes = dot / magnitudes;
+			float angle = MathX.Acos(dotOverMagnitudes); //RADIANS
 
 			//we define vec1 as UP, or Y
-			double3 XVector = MathX.Cross(Vec1, Axis);
-			double XDot = MathX.Dot(XVector, Vec2);
+			float3 XVector = MathX.Cross(Vec1, Axis);
+			float XDot = MathX.Dot(XVector, Vec2);
 			//if the dot product is negative, the angle is obtuse
 			//if the angle from the x axis is obtuse, the vector is in the negative X region
 			//I don't know why I am inverting this, but it seems to give me the correct answer
 			//It should be > instead of <, but... it works?
-			double invert = (XDot < 0) ? 1 : -1;
+			float invert = (XDot < 0) ? 1 : -1;
 			//Warn("VectorsToAngle: invert = " + invert + " angle = " + angle + " XDot = " + XDot);
 			return angle * invert;
 		}
 
-		static double3 PointToVector(double3 point, double3 Axis) {
+		static float3 PointToVector(float3 point, float3 Axis) {
 			//float3's with _to_ in their name are vectors
 			//float3's without that are points
-			double AxisSquared = Axis.SqrMagnitude;
-			double origin_to_pointAReal_DOT_Axis = MathX.Dot(point, Axis);
-			double scalarDistanceAlong_Axis = origin_to_pointAReal_DOT_Axis / AxisSquared;
-			double3 pointARealClosestAxisPoint = scalarDistanceAlong_Axis * Axis;
+			float AxisSquared = Axis.SqrMagnitude;
+			float origin_to_pointAReal_DOT_Axis = MathX.Dot(point, Axis);
+			float scalarDistanceAlong_Axis = origin_to_pointAReal_DOT_Axis / AxisSquared;
+			float3 pointARealClosestAxisPoint = scalarDistanceAlong_Axis * Axis;
 
-			double3 pointAReal_to_Axis = pointARealClosestAxisPoint - point;
+			float3 pointAReal_to_Axis = pointARealClosestAxisPoint - point;
 
 			return pointAReal_to_Axis;
 		}
