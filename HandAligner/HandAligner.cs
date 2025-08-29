@@ -7,6 +7,8 @@ using HarmonyLib;
 using ResoniteModLoader;
 using Renderite.Shared;
 using System;
+using System.Reflection;
+using System.IO.Pipelines;
 
 namespace HandAligner;
 //More info on creating mods can be found https://github.com/resonite-modding-group/ResoniteModLoader/wiki/Creating-Mods
@@ -38,8 +40,7 @@ public class HandAligner : ResoniteMod {
 				return;
 			}
 
-			SetAviCreatorHandRotation(biped, __instance, float3.One, true);
-			SetAviCreatorHandRotation(biped, __instance, float3.One, false);
+			SetAviCreatorScaleAndRotate(biped, __instance);
 		}
 
 		static void trygetbipedfromhead(AvatarCreator __instance, ref BipedRig __result) {
@@ -51,6 +52,76 @@ public class HandAligner : ResoniteMod {
 			//Regardless, it works, so it stays.
 			biped_cache = __result;
 		}
+
+		static void SetAviCreatorScaleAndRotate(BipedRig bipedRig, AvatarCreator avatarCreator) {
+			float3 aviCreatorScale = ComputeAviCreatorScale(bipedRig);
+			Slot headsetRef = ((SyncRef<Slot>)avatarCreator.GetType().GetField("_headsetReference", BindingFlags.Instance | BindingFlags.NonPublic)
+			.GetValue(avatarCreator)).Target;
+			// line up head
+			Slot head = bipedRig.TryGetBone(BodyNode.Head);
+			if (head != null) {
+				headsetRef.GlobalScale = aviCreatorScale;
+			}
+			SetAviCreatorHandRotation(bipedRig, avatarCreator, aviCreatorScale, true);
+			SetAviCreatorHandRotation(bipedRig, avatarCreator, aviCreatorScale, false);
+		}
+
+		// loops through fingers to get bounding box of size
+		static float3 GetHandSize(BipedRig rig, bool rightSide) {
+			BoundingBox box = new BoundingBox();
+			box.MakeEmpty();
+			Slot handBone = rig.TryGetBone(rightSide ? BodyNode.RightHand : BodyNode.LeftHand);
+			if (handBone != null) {
+				box.Encapsulate(handBone.Parent.GlobalPointToLocal(handBone.GlobalPosition));
+				BodyNode[][] fingerOrders = rightSide ? rightFingerOrders : leftFingerOrders;
+				foreach (BodyNode[] fingerPieces in fingerOrders) {
+					foreach (BodyNode fingerPiece in fingerPieces) {
+						Slot fingerPieceSlot = rig.TryGetBone(fingerPiece);
+						if (fingerPieceSlot != null) {
+							float3 relativePosition = handBone.Parent.GlobalPointToLocal(fingerPieceSlot.GlobalPosition);
+							box.Encapsulate(relativePosition);
+						}
+					}
+				}
+			}
+			return box.Size;
+		}
+
+		static float3 ComputeAviCreatorScale(BipedRig rig) {
+			float3 avgSize = new float3(0, 0, 0);
+			int numSizesFound = 0;
+			foreach (bool rightSide in new bool[] { false, true }) {
+				Slot handSlot = rig.TryGetBone(rightSide ? BodyNode.RightHand : BodyNode.LeftHand);
+				if (handSlot != null) {
+					float resultSize;
+					float3 handSizeByBoundingBox = handSlot.ComputeBoundingBox(includeInactive: true, space: handSlot.Parent).Size;
+					float maxSizeByBoundingBox = Math.Max(Math.Max(handSizeByBoundingBox.x, handSizeByBoundingBox.y), handSizeByBoundingBox.z);
+					float3 handSizeByFingers = GetHandSize(rig, rightSide);
+					float maxSizeByFingers = Math.Max(Math.Max(handSizeByFingers.x, handSizeByFingers.y), handSizeByFingers.z);
+					// if bounding box is substantially bigger, rely on finger size
+					// this is in case they are holding something that messed up bounds
+					// (as long as finger estimate is not too small, say, if they have no fingers)
+					if (maxSizeByBoundingBox > maxSizeByFingers * 1.5f &&
+						maxSizeByFingers > 0.01f) {
+						resultSize = maxSizeByFingers;
+					}
+					// otherwise, bounding box tends to be slightly better
+					else {
+						resultSize = maxSizeByBoundingBox;
+					}
+					avgSize += handSlot.Parent.LocalScaleToGlobal(new float3(resultSize, resultSize, resultSize));
+					numSizesFound += 1;
+				}
+			}
+			if (numSizesFound > 0) {
+				// compute average (vrik doesn't support hands being different sizes, so, just do average)
+				avgSize /= numSizesFound;
+				return avgSize / 0.23f; // this is the distance from center of wrist to end of avatar creator fingers
+			} else {
+				return new float3(1, 1, 1);
+			}
+		}
+
 		static void SetAviCreatorHandRotation(BipedRig bipedRig, AvatarCreator avatarCreator, float3 localScale, bool rightSide) {
 			float3 globalFingerTipRef1;
 			float3 globalFingerTipRef2;
