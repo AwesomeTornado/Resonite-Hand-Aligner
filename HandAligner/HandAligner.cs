@@ -5,6 +5,7 @@ using FrooxEngine;
 using Elements.Core;
 using HarmonyLib;
 using ResoniteModLoader;
+using Renderite.Shared;
 using System;
 
 namespace HandAligner;
