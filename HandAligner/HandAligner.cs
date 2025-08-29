@@ -19,7 +19,22 @@ public class HandAligner : ResoniteMod {
 	public override string Version => VERSION_CONSTANT;
 	public override string Link => "https://github.com/AwesomeTornado/Resonite-Hand-Aligner";
 
+	[AutoRegisterConfigKey]
+	private static readonly ModConfigurationKey<bool> ModEnabled = new ModConfigurationKey<bool>("Mod Enabled", "Allow this mod to modify the avatar creator buttons.", () => true);
+
+	[AutoRegisterConfigKey]
+	private static readonly ModConfigurationKey<bool> ModifyScale = new ModConfigurationKey<bool>("Auto Apply Scale", "Makes the mod calculate the scale of the avatar, and attempt to match it.", () => false);
+
+	[AutoRegisterConfigKey]
+	private static readonly ModConfigurationKey<float> OffsetScale = new ModConfigurationKey<float>("Manual Scaling factor", "Scales the avatar creator by this amount. This scale applies in addition to auto scale.", () => 1);
+	
+	[AutoRegisterConfigKey]
+	private static readonly ModConfigurationKey<bool> DisableSymmetry = new ModConfigurationKey<bool>("Disable Symmetry", "Automatically disables symmetry before aligning hands. This can improve accuracy.", () => true);
+
+	private static ModConfiguration Config;
+
 	public override void OnEngineInit() {
+		Config = GetConfiguration();
 		Harmony harmony = new Harmony("com.__Choco__.HandAligner");
 		harmony.Patch(AccessTools.Method(typeof(AvatarCreator), "AlignHands"), postfix: AccessTools.Method(typeof(AlignmentPatchMethods), "AlignHands"));
 		harmony.Patch(AccessTools.Method(typeof(AvatarCreator), "TryGetBipedFromHead"), postfix: AccessTools.Method(typeof(AlignmentPatchMethods), "trygetbipedfromhead"));
@@ -32,7 +47,8 @@ public class HandAligner : ResoniteMod {
 		static BipedRig biped_cache;
 
 		static void AlignHands(AvatarCreator __instance) {
-			Warn("Remember to turn off symmetry! (this message always appears)");
+			if (!Config.GetValue(ModEnabled))
+				return;
 
 			BipedRig biped = biped_cache;
 			if (biped == null || !biped.IsValid) {
@@ -54,16 +70,36 @@ public class HandAligner : ResoniteMod {
 		}
 
 		static void SetAviCreatorScaleAndRotate(BipedRig bipedRig, AvatarCreator avatarCreator) {
-			float3 aviCreatorScale = ComputeAviCreatorScale(bipedRig);
+			float3 aviCreatorScale = float3.One * Config.GetValue(OffsetScale);
 			Slot headsetRef = ((SyncRef<Slot>)avatarCreator.GetType().GetField("_headsetReference", BindingFlags.Instance | BindingFlags.NonPublic)
 			.GetValue(avatarCreator)).Target;
 			// line up head
 			Slot head = bipedRig.TryGetBone(BodyNode.Head);
-			if (head != null) {
+			if (head != null && Config.GetValue(ModifyScale)) {
+				aviCreatorScale *= ComputeAviCreatorScale(bipedRig);
 				headsetRef.GlobalScale = aviCreatorScale;
 			}
+
+			if (Config.GetValue(DisableSymmetry)) {
+				Sync<bool> useSymmetry = (Sync<bool>)avatarCreator
+								.GetType()
+								.GetField("_useSymmetry", BindingFlags.Instance | BindingFlags.NonPublic)
+								.GetValue(avatarCreator);
+				useSymmetry.Value = false;
+				// call on changes callback to update
+				avatarCreator
+					.GetType()
+					.GetMethod("OnChanges", BindingFlags.Instance | BindingFlags.NonPublic)
+					.Invoke(avatarCreator, new object[] { });
+				// wait for changes to update
+				Context.WaitForNextUpdate();
+				Context.WaitForNextUpdate();
+				Context.ToWorld();
+			}
+
 			SetAviCreatorHandRotation(bipedRig, avatarCreator, aviCreatorScale, true);
 			SetAviCreatorHandRotation(bipedRig, avatarCreator, aviCreatorScale, false);
+			
 		}
 
 		// loops through fingers to get bounding box of size
