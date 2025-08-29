@@ -3,7 +3,7 @@
 		<RootNamespace>HandAligner</RootNamespace>
 		<AssemblyName>HandAligner</AssemblyName>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-		<TargetFramework>net472</TargetFramework>
+		<TargetFramework>net9</TargetFramework>
 		<FileAlignment>512</FileAlignment>
 		<LangVersion>10.0</LangVersion>
 		<Nullable>enable</Nullable>
